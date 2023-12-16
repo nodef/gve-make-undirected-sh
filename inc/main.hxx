@@ -6,4 +6,4 @@
 #include "update.hxx"
 #include "io.hxx"
 #include "duplicate.hxx"
-#include "symmetricize.hxx"
+#include "symmetrize.hxx"
