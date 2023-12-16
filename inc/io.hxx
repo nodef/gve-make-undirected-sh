@@ -17,7 +17,6 @@ using std::string;
 using std::istream;
 using std::ostream;
 using std::istringstream;
-using std::stringstream;
 using std::move;
 using std::max;
 using std::replace;
@@ -279,6 +278,159 @@ inline void readGraphMtxFormatOmpW(G& a, istream& stream) {
   addVerticesU(a, K(1), K(max(rows, cols) + 1));
   readEdgelistFormatDoOmp<WEIGHTED>(stream, symmetric, fb);
   updateOmpU(a);
+}
+#endif
+#pragma endregion
+
+
+
+
+#pragma region WRITE GRAPH (EDGELIST, COO, MTX FORMATS)
+/**
+ * Write a graph in Edgelist format.
+ * @tparam WEIGHTED is graph weighted?
+ * @param stream output stream
+ * @param x input graph
+ * @param symmetric is graph symmetric?
+ * @param sep separator
+ */
+template <bool WEIGHTED=false, class G>
+inline void writeGraphEdgelistFormat(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
+  x.forEachVertexKey([&](auto u) {
+    x.forEachEdge(u, [&](auto v, auto w) {
+      if (symmetric && u>v) return;
+      stream << u << sep << v;
+      if (WEIGHTED) stream << sep << w;
+      stream << '\n';
+    });
+  });
+}
+
+
+#ifdef OPENMP
+/**
+ * Write a graph in Edgelist format.
+ * @tparam WEIGHTED is graph weighted?
+ * @param stream output stream
+ * @param x input graph
+ * @param symmetric is graph symmetric?
+ * @param sep separator
+ */
+template <bool WEIGHTED=false, class G>
+inline void writeGraphEdgelistFormatOmp(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
+  const size_t CHUNK = 131072;
+  // Allocate a text-block for each thread.
+  int T = omp_get_max_threads();
+  vector<string*> texts(T);
+  for (int t=0; t<T; ++t)
+    texts[t] = new string();
+  // Write edges to text-blocks using multiple threads.
+  size_t S = x.span();
+  size_t I = ceilDiv(S, CHUNK);
+  for (size_t i=0; i<I; ++i) {
+    int    t = omp_get_thread_num();
+    size_t u = u * CHUNK;
+    size_t U = min(u + CHUNK, S);
+    texts[t]->clear();
+    #pragma omp parallel for schedule(dynamic, 1024)
+    for (; u<U; ++u) {
+      string ustr, vstr, wstr;
+      x.forEachEdge(u, [&](auto v, auto w) {
+        if (symmetric && u>v) return;
+        ustr = to_string(u);
+        vstr = to_string(v);
+        wstr = WEIGHTED? to_string(w) : "";
+        texts[t]->append(ustr);
+        texts[t]->push_back(sep);
+        texts[t]->append(vstr);
+        if (WEIGHTED) {
+          texts[t]->push_back(sep);
+          texts[t]->append(wstr);
+        }
+        texts[t]->push_back('\n');
+      });
+    }
+    // Write text-blocks to output stream.
+    for (int t=0; t<T; ++t)
+      stream << *texts[t];
+  }
+  // Free text-blocks.
+  for (int t=0; t<T; ++t)
+    delete texts[t];
+}
+#endif
+
+
+/**
+ * Write a graph in COO format.
+ * @tparam WEIGHTED is graph weighted?
+ * @param stream output stream
+ * @param x input graph
+ * @param symmetric is graph symmetric?
+ * @param sep separator
+ */
+template <bool WEIGHTED=false, class G>
+inline void writeGraphCooFormat(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
+  size_t rows = x.order(), cols = x.order(), size = x.size();
+  stream << rows << ' ' << cols << ' ' << size << '\n';
+  writeGraphEdgelistFormat<WEIGHTED>(stream, x, symmetric, sep);
+}
+
+
+#ifdef OPENMP
+/**
+ * Write a graph in COO format.
+ * @tparam WEIGHTED is graph weighted?
+ * @param stream output stream
+ * @param x input graph
+ * @param symmetric is graph symmetric?
+ * @param sep separator
+ */
+template <bool WEIGHTED=false, class G>
+inline void writeGraphCooFormatOmp(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
+  size_t rows = x.order(), cols = x.order(), size = x.size();
+  stream << rows << ' ' << cols << ' ' << size << '\n';
+  writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric, sep);
+}
+#endif
+
+
+/**
+ * Write a graph in MTX format.
+ * @tparam WEIGHTED is graph weighted?
+ * @param stream output stream
+ * @param x input graph
+ * @param symmetric is graph symmetric?
+ * @param sep separator
+ */
+template <bool WEIGHTED=false, class G>
+inline void writeGraphMtxFormat(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
+  size_t rows = x.order(), cols = x.order(), size = x.size();
+  stream << "%%MatrixMarket matrix coordinate";
+  stream << (WEIGHTED?  " real"      : " pattern");
+  stream << (symmetric? " symmetric" : " general") << '\n';
+  stream << rows << ' ' << cols << ' ' << size << '\n';
+  writeGraphEdgelistFormat<WEIGHTED>(stream, x, symmetric, sep);
+}
+
+
+#ifdef OPENMP
+/**
+ * Write a graph in MTX format.
+ * @tparam WEIGHTED is graph weighted?
+ * @param stream output stream
+ * @param x input graph
+ * @param symmetric is graph symmetric?
+ * @param sep separator
+ */
+template <bool WEIGHTED=false, class G>
+inline void writeGraphMtxFormatOmp(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
+  size_t rows = x.order(), cols = x.order(), size = x.size();
+  stream << "%%MatrixMarket matrix coordinate";
+  stream << (WEIGHTED?  " real"      : " pattern");
+  stream << (symmetric? " symmetric" : " general") << '\n';
+  stream << rows << ' ' << cols << ' ' << size << '\n';
+  writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric, sep);
 }
 #endif
 #pragma endregion
