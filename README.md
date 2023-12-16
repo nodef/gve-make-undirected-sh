@@ -44,7 +44,7 @@ Supported formats:
 ```bash
 $ git clone https://github.com/ionicf/graph-make-undirected
 $ cd graph-make-undirected
-$ ./install.sh --prefix=/usr/local
+$ ./install.sh --prefix /usr/local
 ```
 
 <br>
