@@ -190,8 +190,8 @@ int main(int argc, char **argv) {
     x = symmetrizeOmp(x);
     print(x); printf(" (symmetrize)\n");
   }
-  // Write graph.
-  printf("Writing graph %s ...\n", o.outputFile.c_str());
+  // Write undirected graph.
+  printf("Writing undirected graph %s ...\n", o.outputFile.c_str());
   if (o.weighted) writeGraph<true> (x, o.outputFile, o.outputFormat, true);
   else            writeGraph<false>(x, o.outputFile, o.outputFormat, true);
   printf("Done.\n\n");
