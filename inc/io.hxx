@@ -330,11 +330,12 @@ inline void writeGraphEdgelistFormatOmp(ostream& stream, const G& x, bool symmet
   size_t S = x.span();
   size_t I = ceilDiv(S, CHUNK);
   for (size_t i=0; i<I; ++i) {
-    int    t = omp_get_thread_num();
+    for (int t=0; t<T; ++t)
+      texts[t]->clear();
     size_t U = min((i+1)*CHUNK, S);
-    texts[t]->clear();
     #pragma omp parallel for schedule(dynamic, 1024)
     for (size_t u=i*CHUNK; u<U; ++u) {
+      int t = omp_get_thread_num();
       string ustr, vstr, wstr;
       x.forEachEdge(u, [&](auto v, auto w) {
         if (symmetric && u>v) return;
