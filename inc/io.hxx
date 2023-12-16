@@ -1,11 +1,9 @@
 #pragma once
 #include <cstdint>
-#include <cstdlib>
 #include <utility>
 #include <string>
 #include <istream>
 #include <sstream>
-#include <fstream>
 #include <algorithm>
 #include "_main.hxx"
 #include "Graph.hxx"
@@ -17,146 +15,106 @@
 using std::tuple;
 using std::string;
 using std::istream;
+using std::ostream;
 using std::istringstream;
-using std::ifstream;
-using std::ofstream;
+using std::stringstream;
 using std::move;
 using std::max;
+using std::replace;
 using std::getline;
 
 
 
 
 #pragma region METHODS
-#pragma region READ MTX HEADER
+#pragma region READ COO FORMAT HEADER
 /**
- * Read header of MTX file.
- * @param s input stream
- * @param symmetric is graph symmetric (updated)
- * @param rows number of rows (updated)
- * @param cols number of columns (updated)
- * @param size number of lines/edges (updated)
+ * Read header of COO format file.
+ * @param rows number of rows (output)
+ * @param cols number of columns (output)
+ * @param size number of lines/edges (output)
+ * @param stream input stream
  */
-inline void readMtxHeader(istream& s, bool& symmetric, size_t& rows, size_t& cols, size_t& size) {
-  string line, h0, h1, h2, h3, h4;
-  // Skip past the comments and read the graph type.
-  while (true) {
-    getline(s, line);
-    if (line.find('%')!=0) break;
-    if (line.find("%%")!=0) continue;
-    istringstream sline(line);
-    sline >> h0 >> h1 >> h2 >> h3 >> h4;
+inline void readCooFormatHeaderW(size_t& rows, size_t& cols, size_t &size, istream& stream) {
+  string line;
+  // Skip past empty lines and comments.
+  while (getline(stream, line)) {
+    auto fu = [](char c) { return false; };
+    auto it = findNextNonBlank(line.begin(), line.end(), fu);
+    if ( it==line.end() || *it=='\n') continue;
+    if (*it!='%' || *it!='#') break;
   }
-  if (h1!="matrix" || h2!="coordinate") { symmetric = false; rows = 0; cols = 0; size = 0; return; }
-  symmetric = h4=="symmetric" || h4=="skew-symmetric";
   // Read rows, cols, size.
-  istringstream sline(line);
-  sline >> rows >> cols >> size;
-}
-inline void readMtxHeader(const char* pth, bool& symmetric, size_t& rows, size_t& cols, size_t& size) {
-  ifstream s(pth);
-  return readMtxHeader(s, symmetric, rows, cols, size);
-}
-
-
-/**
- * Read order of graph in MTX file.
- * @param s input stream
- * @returns number of vertices (1-N)
- */
-inline size_t readMtxOrder(istream& s) {
-  bool symmetric; size_t rows, cols, size;
-  readMtxHeader(s, symmetric, rows, cols, size);
-  return max(rows, cols);
-}
-inline size_t readMtxOrder(const char* pth) {
-  ifstream s(pth);
-  return readMtxOrder(s);
-}
-
-
-/**
- * Read size of graph in MTX file.
- * @param s input stream
- * @returns number of edges
- */
-inline size_t readMtxSize(istream& s) {
-  bool symmetric; size_t rows, cols, size;
-  readMtxHeader(s, symmetric, rows, cols, size);
-  return size;
-}
-inline size_t readMtxSize(const char* pth) {
-  ifstream s(pth);
-  return readMtxSize(s);
-}
-
-
-/**
- * Read span of graph in MTX file.
- * @param s input stream
- * @returns number of vertices + 1
- */
-inline size_t readMtxSpan(istream& s) {
-  return readMtxOrder(s) + 1;
-}
-inline size_t readMtxSpan(const char* pth) {
-  ifstream s(pth);
-  return readMtxSpan(s);
+  istringstream lstream(line);
+  lstream >> rows >> cols >> size;
 }
 #pragma endregion
 
 
 
 
-#pragma region READ MTX DO
+#pragma region READ MTX FORMAT HEADER
 /**
- * Read contents of MTX file.
- * @param s input stream
- * @param weighted is it weighted?
- * @param fh on header (symmetric, rows, cols, size)
+ * Read header of MTX format file.
+ * @param symmetric is graph symmetric (output)
+ * @param rows number of rows (output)
+ * @param cols number of columns (output)
+ * @param size number of lines/edges (output)
+ * @param stream input stream
+ */
+inline void readMtxFormatHeader(bool& symmetric, size_t& rows, size_t& cols, size_t& size, istream& stream) {
+  string line, h0, h1, h2, h3, h4;
+  // Skip past empty lines and comments, and read the graph type.
+  while (getline(stream, line)) {
+    if (line.find('%')!=0) break;
+    if (line.find("%%")!=0) continue;
+    istringstream lstream(line);
+    lstream >> h0 >> h1 >> h2 >> h3 >> h4;
+  }
+  if (h1!="matrix" || h2!="coordinate") throw FormatError("Invalid MTX header (unknown format)");
+  symmetric = h4=="symmetric" || h4=="skew-symmetric";
+  // Read rows, cols, size.
+  istringstream lstream(line);
+  lstream >> rows >> cols >> size;
+}
+#pragma endregion
+
+
+
+
+#pragma region READ EDGELIST FORMAT
+/**
+ * Read a file in Edgelist format (also supports CSV and TSV).
+ * @tparam WEIGHTED is graph weighted?
+ * @param stream input stream
+ * @param symmetric is graph symmetric?
  * @param fb on body line (u, v, w)
  */
-template <class FH, class FB>
-inline void readMtxDo(istream& s, bool weighted, FH fh, FB fb) {
-  bool symmetric; size_t rows, cols, size;
-  readMtxHeader(s, symmetric, rows, cols, size);
-  fh(symmetric, rows, cols, size);
-  size_t n = max(rows, cols);
-  if (n==0) return;
-  // Process body lines sequentially.
+template <bool WEIGHTED=false, class FB>
+inline void readEdgelistFormatDo(istream& stream, bool symmetric, FB fb) {
   string line;
-  while (getline(s, line)) {
+  while (getline(stream, line)) {
     size_t u, v; double w = 1;
-    istringstream sline(line);
-    if (!(sline >> u >> v)) break;
-    if (weighted) sline >> w;
+    replace(line.begin(), line.end(), ',', ' ');
+    istringstream lstream(line);
+    if (!(lstream >> u >> v)) break;
+    if (WEIGHTED) lstream >> w;
     fb(u, v, w);
     if (symmetric) fb(v, u, w);
   }
-}
-template <class FH, class FB>
-inline void readMtxDo(const char *pth, bool weighted, FH fh, FB fb) {
-  ifstream s(pth);
-  readMtxDo(s, weighted, fh, fb);
 }
 
 
 #ifdef OPENMP
 /**
- * Read contents of MTX file.
- * @param s input stream
- * @param weighted is it weighted?
- * @param fh on header (symmetric, rows, cols, size)
+ * Read a file in Edgelist format (also supports CSV and TSV).
+ * @tparam WEIGHTED is graph weighted?
+ * @param stream input stream
+ * @param symmetric is graph symmetric?
  * @param fb on body line (u, v, w)
  */
-template <class FH, class FB>
-inline void readMtxDoOmp(istream& s, bool weighted, FH fh, FB fb) {
-  bool symmetric; size_t rows, cols, size;
-  readMtxHeader(s, symmetric, rows, cols, size);
-  fh(symmetric, rows, cols, size);
-  size_t n = max(rows, cols);
-  if (n==0) return;
-  // Process body lines in parallel.
+template <bool WEIGHTED=false, class FB>
+inline void readEdgelistFormatDoOmp(istream& stream, bool symmetric, FB fb) {
   const int THREADS = omp_get_max_threads();
   const int LINES   = 131072;
   vector<string> lines(LINES);
@@ -165,16 +123,17 @@ inline void readMtxDoOmp(istream& s, bool weighted, FH fh, FB fb) {
     // Read several lines from the stream.
     int READ = 0;
     for (int i=0; i<LINES; ++i, ++READ)
-      if (!getline(s, lines[i])) break;
+      if (!getline(stream, lines[i])) break;
     if (READ==0) break;
     // Parse lines using multiple threads.
     #pragma omp parallel for schedule(dynamic, 1024)
     for (int i=0; i<READ; ++i) {
+      replace(lines[i].begin(), lines[i].end(), ',', ' ');
       char *line = (char*) lines[i].c_str();
       size_t u = strtoull(line, &line, 10);
       size_t v = strtoull(line, &line, 10);
-      double w = weighted? strtod(line, &line) : 0;
-      edges[i] = {u, v, w? w : 1};
+      double w = WEIGHTED? strtod(line, &line) : 0;
+      edges[i] = {u, v, WEIGHTED? w : 1};
     }
     // Notify parsed lines.
     #pragma omp parallel
@@ -187,110 +146,139 @@ inline void readMtxDoOmp(istream& s, bool weighted, FH fh, FB fb) {
     }
   }
 }
-template <class FH, class FB>
-inline void readMtxDoOmp(const char *pth, bool weighted, FH fh, FB fb) {
-  ifstream s(pth);
-  readMtxDoOmp(s, weighted, fh, fb);
-}
 #endif
 #pragma endregion
 
 
 
 
-#pragma region READ MTX IF
+#pragma region READ GRAPH (EDGELIST, COO, MTX FORMATS)
 /**
- * Read MTX file as graph if test passes.
- * @param a output graph (updated)
- * @param s input stream
- * @param weighted is it weighted?
- * @param fv include vertex? (u, d)
- * @param fe include edge? (u, v, w)
+ * Read a file in Edgelist format as a graph.
+ * @tparam WEIGHTED is graph weighted?
+ * @param a output graph (output)
+ * @param stream input stream
+ * @param symmetric is graph symmetric?
+ * @param span maximum number of vertices (0 for no limit)
  */
-template <class G, class FV, class FE>
-inline void readMtxIfW(G &a, istream& s, bool weighted, FV fv, FE fe) {
+template <bool WEIGHTED=false, class G>
+inline void readGraphEdgelistFormatW(G& a, istream& stream, bool symmetric, size_t span=0) {
   using K = typename G::key_type;
-  using V = typename G::vertex_value_type;
   using E = typename G::edge_value_type;
-  auto fh = [&](auto symmetric, auto rows, auto cols, auto size) { addVerticesIfU(a, K(1), K(max(rows, cols)+1), V(), fv); };
-  auto fb = [&](auto u, auto v, auto w) { if (fe(K(u), K(v), K(w))) a.addEdge(K(u), K(v), E(w)); };
-  readMtxDo(s, weighted, fh, fb);
+  auto fb = [&](auto u, auto v, auto w) { a.addEdge(K(u), K(v), E(w)); };
+  a.clear();
+  if (span) a.respan(span);
+  readEdgelistFormatDo<WEIGHTED>(stream, symmetric, fb);
   a.update();
 }
-template <class G, class FV, class FE>
-inline void readMtxIfW(G &a, const char *pth, bool weighted, FV fv, FE fe) {
-  ifstream s(pth);
-  readMtxIfW(a, s, weighted, fv, fe);
-}
 
 
 #ifdef OPENMP
 /**
- * Read MTX file as graph if test passes.
- * @param a output graph (updated)
- * @param s input stream
- * @param weighted is it weighted?
- * @param fv include vertex? (u, d)
- * @param fe include edge? (u, v, w)
+ * Read a file in Edgelist format as a graph.
+ * @tparam WEIGHTED is graph weighted?
+ * @param a output graph (output)
+ * @param stream input stream
+ * @param symmetric is graph symmetric?
+ * @param span maximum number of vertices (0 for no limit)
  */
-template <class G, class FV, class FE>
-inline void readMtxIfOmpW(G &a, istream& s, bool weighted, FV fv, FE fe) {
+template <bool WEIGHTED=false, class G>
+inline void readGraphEdgelistFormatOmpW(G& a, istream& stream, bool symmetric=false, size_t span=0) {
   using K = typename G::key_type;
-  using V = typename G::vertex_value_type;
   using E = typename G::edge_value_type;
-  auto fh = [&](auto symmetric, auto rows, auto cols, auto size) { addVerticesIfU(a, K(1), K(max(rows, cols)+1), V(), fv); };
-  auto fb = [&](auto u, auto v, auto w) { if (fe(K(u), K(v), K(w))) addEdgeOmpU(a, K(u), K(v), E(w)); };
-  readMtxDoOmp(s, weighted, fh, fb);
+  auto fb = [&](auto u, auto v, auto w) { addEdgeOmpU(a, K(u), K(v), E(w)); };
+  a.clear();
+  if (span) a.respan(span);
+  readEdgelistFormatDoOmp<WEIGHTED>(stream, symmetric, fb);
   updateOmpU(a);
 }
-template <class G, class FV, class FE>
-inline void readMtxIfOmpW(G &a, const char *pth, bool weighted, FV fv, FE fe) {
-  ifstream s(pth);
-  readMtxIfOmpW(a, s, weighted, fv, fe);
-}
 #endif
-#pragma endregion
 
 
-
-
-#pragma region READ MTX
 /**
- * Read MTX file as graph.
- * @param a output graph (updated)
- * @param s input stream
- * @param weighted is it weighted?
+ * Read a file in COO format as a graph.
+ * @tparam WEIGHTED is graph weighted?
+ * @param a output graph (output)
+ * @param stream input stream
+ * @param symmetric is graph symmetric?
  */
-template <class G>
-inline void readMtxW(G& a, istream& s, bool weighted=false) {
-  auto fv = [](auto u, auto d)         { return true; };
-  auto fe = [](auto u, auto v, auto w) { return true; };
-  readMtxIfW(a, s, weighted, fv, fe);
-}
-template <class G>
-inline void readMtxW(G& a, const char *pth, bool weighted=false) {
-  ifstream s(pth);
-  readMtxW(a, s, weighted);
+template <bool WEIGHTED=false, class G>
+inline void readGraphCooFormatW(G& a, istream& stream, bool symmetric=false) {
+  using K = typename G::key_type;
+  using E = typename G::edge_value_type;
+  auto fb = [&](auto u, auto v, auto w) { a.addEdge(K(u), K(v), E(w)); };
+  size_t rows = 0, cols = 0, size = 0;
+  a.clear();
+  readCooFormatHeaderW(rows, cols, size, stream);
+  addVerticesU(a, K(1), K(max(rows, cols) + 1));
+  readEdgelistFormatDo<WEIGHTED>(stream, symmetric, fb);
+  a.update();
 }
 
 
 #ifdef OPENMP
 /**
- * Read MTX file as graph.
- * @param a output graph (updated)
- * @param s input stream
- * @param weighted is it weighted?
+ * Read a file in COO format as a graph.
+ * @tparam WEIGHTED is graph weighted?
+ * @param a output graph (output)
+ * @param stream input stream
+ * @param symmetric is graph symmetric?
  */
-template <class G>
-inline void readMtxOmpW(G& a, istream& s, bool weighted=false) {
-  auto fv = [](auto u, auto d)         { return true; };
-  auto fe = [](auto u, auto v, auto w) { return true; };
-  readMtxIfOmpW(a, s, weighted, fv, fe);
+template <bool WEIGHTED=false, class G>
+inline void readGraphCooFormatOmpW(G& a, istream& stream, bool symmetric=false) {
+  using K = typename G::key_type;
+  using E = typename G::edge_value_type;
+  auto fb = [&](auto u, auto v, auto w) { addEdgeOmpU(a, K(u), K(v), E(w)); };
+  size_t rows = 0, cols = 0, size = 0;
+  a.clear();
+  readCooFormatHeaderW(rows, cols, size, stream);
+  addVerticesU(a, K(1), K(max(rows, cols) + 1));
+  readEdgelistFormatDoOmp<WEIGHTED>(stream, symmetric, fb);
+  updateOmpU(a);
 }
-template <class G>
-inline void readMtxOmpW(G& a, const char *pth, bool weighted=false) {
-  ifstream s(pth);
-  readMtxOmpW(a, s, weighted);
+#endif
+
+
+/**
+ * Read a file in MTX format as a graph.
+ * @tparam WEIGHTED is graph weighted?
+ * @param a output graph (output)
+ * @param stream input stream
+ */
+template <bool WEIGHTED=false, class G>
+inline void readGraphMtxFormatW(G& a, istream& stream) {
+  using K = typename G::key_type;
+  using E = typename G::edge_value_type;
+  auto fb = [&](auto u, auto v, auto w) { a.addEdge(K(u), K(v), E(w)); };
+  bool symmetric = false;
+  size_t rows = 0, cols = 0, size = 0;
+  a.clear();
+  readMtxFormatHeader(symmetric, rows, cols, size, stream);
+  addVerticesU(a, K(1), K(max(rows, cols) + 1));
+  readEdgelistFormatDo<WEIGHTED>(stream, symmetric, fb);
+  a.update();
+}
+
+
+#ifdef OPENMP
+/**
+ * Read a file in MTX format as a graph.
+ * @tparam WEIGHTED is graph weighted?
+ * @param a output graph (output)
+ * @param stream input stream
+ */
+template <bool WEIGHTED=false, class G>
+inline void readGraphMtxFormatOmpW(G& a, istream& stream) {
+  using K = typename G::key_type;
+  using E = typename G::edge_value_type;
+  auto fb = [&](auto u, auto v, auto w) { addEdgeOmpU(a, K(u), K(v), E(w)); };
+  bool symmetric = false;
+  size_t rows = 0, cols = 0, size = 0;
+  a.clear();
+  readMtxFormatHeader(symmetric, rows, cols, size, stream);
+  addVerticesU(a, K(1), K(max(rows, cols) + 1));
+  readEdgelistFormatDoOmp<WEIGHTED>(stream, symmetric, fb);
+  updateOmpU(a);
 }
 #endif
 #pragma endregion
