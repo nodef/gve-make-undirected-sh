@@ -57,10 +57,13 @@ struct Options {
  * @returns options
  */
 inline Options parseOptions(int argc, char **argv) {
-  Options o {"mtx", "mtx", "", "", false, false};
+  Options o;
+  o.inputFormat  = "mtx";
+  o.outputFormat = "mtx";
   for (int i=1; i<argc; ++i) {
     string k = argv[i];
-    if (k=="-h" || k=="--help") o.help = true;
+    if (k=="") continue;
+    else if (k=="-h" || k=="--help") o.help = true;
     else if (k=="-i" || k=="--input")  o.inputFile  = argv[++i];
     else if (k=="-o" || k=="--output") o.outputFile = argv[++i];
     else if (k=="-f" || k=="--input-format")  o.inputFormat  = argv[++i];
@@ -123,6 +126,7 @@ inline bool validateOptions(const Options &o) {
   if (o.outputFile.empty()) { fprintf(stderr, "Output file is not specified.\n"); return false; }
   if (!validateFormat(o.inputFormat))  { fprintf(stderr, "Unknown input format: %s\n",  o.inputFormat.c_str());  return false; }
   if (!validateFormat(o.outputFormat)) { fprintf(stderr, "Unknown output format: %s\n", o.outputFormat.c_str()); return false; }
+  return true;
 }
 
 
@@ -136,9 +140,9 @@ inline bool validateOptions(const Options &o) {
 template <bool WEIGHTED=false, class G>
 inline void readGraphW(G& a, const string& file, const string& format, bool symmetric=false) {
   ifstream stream(file.c_str());
-  if (format==="mtx") readGraphMtxFormatOmpW<WEIGHTED>(a, stream);
-  else if (format==="coo") readGraphCooFormatOmpW<WEIGHTED>(a, stream, symmetric);
-  else if (format==="edgelist" || format==="csv" || format==="tsv") readGraphEdgelistFormatOmpW<WEIGHTED>(a, stream, symmetric);
+  if (format=="mtx") readGraphMtxFormatOmpW<WEIGHTED>(a, stream);
+  else if (format=="coo") readGraphCooFormatOmpW<WEIGHTED>(a, stream, symmetric);
+  else if (format=="edgelist" || format=="csv" || format=="tsv") readGraphEdgelistFormatOmpW<WEIGHTED>(a, stream, symmetric);
   else throw std::runtime_error("Unknown input format: " + format);
 }
 
@@ -153,11 +157,11 @@ inline void readGraphW(G& a, const string& file, const string& format, bool symm
 template <bool WEIGHTED=false, class G>
 inline void writeGraph(const G& x, const string& file, const string& format, bool symmetric=false) {
   ofstream stream(file.c_str());
-  if (format==="mtx") writeGraphMtxFormatOmp<WEIGHTED>(stream, x, symmetric);
-  else if (format==="coo") writeGraphCooFormatOmp<WEIGHTED>(stream, x, symmetric);
-  else if (format==="edgelist") writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric);
-  else if (format==="csv") writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric, ',');
-  else if (format==="tsv") writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric, '\t');
+  if (format=="mtx") writeGraphMtxFormatOmp<WEIGHTED>(stream, x, symmetric);
+  else if (format=="coo") writeGraphCooFormatOmp<WEIGHTED>(stream, x, symmetric);
+  else if (format=="edgelist") writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric);
+  else if (format=="csv") writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric, ',');
+  else if (format=="tsv") writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric, '\t');
   else throw std::runtime_error("Unknown output format: " + format);
 }
 
@@ -183,9 +187,8 @@ int main(int argc, char **argv) {
   println(x);
   // Symmetrize graph.
   if (!o.symmetric) {
-    printf("Symmetrizing graph ...\n");
     x = symmetrizeOmp(x);
-    println(x);
+    print(x); printf(" (symmetrize)\n");
   }
   // Write graph.
   printf("Writing graph %s ...\n", o.outputFile.c_str());

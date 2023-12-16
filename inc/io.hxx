@@ -18,9 +18,11 @@ using std::istream;
 using std::ostream;
 using std::istringstream;
 using std::move;
+using std::min;
 using std::max;
 using std::replace;
 using std::getline;
+using std::to_string;
 
 
 
@@ -329,11 +331,10 @@ inline void writeGraphEdgelistFormatOmp(ostream& stream, const G& x, bool symmet
   size_t I = ceilDiv(S, CHUNK);
   for (size_t i=0; i<I; ++i) {
     int    t = omp_get_thread_num();
-    size_t u = u * CHUNK;
-    size_t U = min(u + CHUNK, S);
+    size_t U = min((i+1)*CHUNK, S);
     texts[t]->clear();
     #pragma omp parallel for schedule(dynamic, 1024)
-    for (; u<U; ++u) {
+    for (size_t u=i*CHUNK; u<U; ++u) {
       string ustr, vstr, wstr;
       x.forEachEdge(u, [&](auto v, auto w) {
         if (symmetric && u>v) return;
@@ -352,11 +353,11 @@ inline void writeGraphEdgelistFormatOmp(ostream& stream, const G& x, bool symmet
     }
     // Write text-blocks to output stream.
     for (int t=0; t<T; ++t)
-      stream << *texts[t];
+      stream << (*texts[t]);
   }
   // Free text-blocks.
   for (int t=0; t<T; ++t)
-    delete texts[t];
+    if (texts[t]) delete texts[t];
 }
 #endif
 

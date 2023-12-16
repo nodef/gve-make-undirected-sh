@@ -34,25 +34,22 @@ runTool() {
   opt3=""
   if [[ "$2" == "1" ]]; then opt2="-w"; fi
   if [[ "$3" == "1" ]]; then opt3="-s"; fi
-  stdbuf --output=L ./a.out -i "$1.mtx" -o "$1-undirected.mtx" "$opt2" "$opt3" 2>&1 | tee -a "$out"
+  stdbuf --output=L ./a.out -i "$1" -o "$1.undirected" "$opt2" "$opt3" 2>&1 | tee -a "$out"
 }
 
 
 # Run tool on all graphs
-runTool "web-Stanford"    0 0
-runTool "indochina-2004"  0 0
-runTool "uk-2002"         0 0
-runTool "arabic-2005"     0 0
-runTool "uk-2005"         0 0
-runTool "webbase-2001"    0 0
-runTool "it-2004"         0 0
-runTool "sk-2005"         0 0
-runTool "com-LiveJournal" 0 1
-runTool "com-Orkut"       0 1
-runTool "asia_osm"        0 1
-runTool "europe_osm"      0 1
-runTool "kmer_A2a"        0 1
-runTool "kmer_V1r"        0 1
-
-# Signal completion
-curl -X POST "https://maker.ifttt.com/trigger/puzzlef/with/key/${IFTTT_KEY}?value1=$src$1"
+runTool ~/Data/web-Stanford.mtx    0 0
+runTool ~/Data/indochina-2004.mtx  0 0
+runTool ~/Data/uk-2002.mtx         0 0
+runTool ~/Data/arabic-2005.mtx     0 0
+runTool ~/Data/uk-2005.mtx         0 0
+runTool ~/Data/webbase-2001.mtx    0 0
+runTool ~/Data/it-2004.mtx         0 0
+runTool ~/Data/sk-2005.mtx         0 0
+runTool ~/Data/com-LiveJournal.mtx 0 1
+runTool ~/Data/com-Orkut.mtx       0 1
+runTool ~/Data/asia_osm.mtx        0 1
+runTool ~/Data/europe_osm.mtx      0 1
+runTool ~/Data/kmer_A2a.mtx        0 1
+runTool ~/Data/kmer_V1r.mtx        0 1
