@@ -29,7 +29,7 @@ Options:
   -s, --symmetric               Input graph is symmetric.
 
 Supported formats:
-  mtx       Matrix Market format.
+  mtx       Matrix Market format (default).
   coo       Coordinate format.
   edgelist  Edgelist format.
   csv       Comma-separated values format.

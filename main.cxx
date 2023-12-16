@@ -34,19 +34,19 @@ using namespace std;
 #pragma region MAIN
 struct Options {
   /** Input file name. */
-  string inputFile;
+  string inputFile = "";
   /** Output file name. */
-  string outputFile;
+  string outputFile = "";
   /** Input file format ("mtx", "coo", "edgelist", "csv", "tsv"). */
-  string inputFormat;
+  string inputFormat = "mtx";
   /** Output file format ("mtx", "coo", "edgelist", "csv", "tsv"). */
-  string outputFormat;
+  string outputFormat = "mtx";
   /** Whether the input graph is weighted. */
-  bool weighted;
+  bool weighted = false;
   /** Whether the input graph is symmetric. */
-  bool symmetric;
+  bool symmetric = false;
   /** Whether to print help. */
-  bool help;
+  bool help = false;
 };
 
 
@@ -97,7 +97,7 @@ inline void showHelp(const char *name) {
   fprintf(stderr, "  -s, --symmetric               Input graph is symmetric.\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Supported formats:\n");
-  fprintf(stderr, "  mtx       Matrix Market format.\n");
+  fprintf(stderr, "  mtx       Matrix Market format (default).\n");
   fprintf(stderr, "  coo       Coordinate format.\n");
   fprintf(stderr, "  edgelist  Edgelist format.\n");
   fprintf(stderr, "  csv       Comma-separated values format.\n");
