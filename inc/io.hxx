@@ -373,7 +373,7 @@ inline void writeGraphEdgelistFormatOmp(ostream& stream, const G& x, bool symmet
  */
 template <bool WEIGHTED=false, class G>
 inline void writeGraphCooFormat(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
-  size_t rows = x.order(), cols = x.order(), size = x.size();
+  size_t rows = x.order(), cols = x.order(), size = symmetric? x.size()/2 : x.size();
   stream << rows << ' ' << cols << ' ' << size << '\n';
   writeGraphEdgelistFormat<WEIGHTED>(stream, x, symmetric, sep);
 }
@@ -390,7 +390,7 @@ inline void writeGraphCooFormat(ostream& stream, const G& x, bool symmetric=fals
  */
 template <bool WEIGHTED=false, class G>
 inline void writeGraphCooFormatOmp(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
-  size_t rows = x.order(), cols = x.order(), size = x.size();
+  size_t rows = x.order(), cols = x.order(), size = symmetric? x.size()/2 : x.size();
   stream << rows << ' ' << cols << ' ' << size << '\n';
   writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric, sep);
 }
@@ -407,7 +407,7 @@ inline void writeGraphCooFormatOmp(ostream& stream, const G& x, bool symmetric=f
  */
 template <bool WEIGHTED=false, class G>
 inline void writeGraphMtxFormat(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
-  size_t rows = x.order(), cols = x.order(), size = x.size();
+  size_t rows = x.order(), cols = x.order(), size = symmetric? x.size()/2 : x.size();
   stream << "%%MatrixMarket matrix coordinate";
   stream << (WEIGHTED?  " real"      : " pattern");
   stream << (symmetric? " symmetric" : " general") << '\n';
@@ -427,7 +427,7 @@ inline void writeGraphMtxFormat(ostream& stream, const G& x, bool symmetric=fals
  */
 template <bool WEIGHTED=false, class G>
 inline void writeGraphMtxFormatOmp(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
-  size_t rows = x.order(), cols = x.order(), size = x.size();
+  size_t rows = x.order(), cols = x.order(), size = symmetric? x.size()/2 : x.size();
   stream << "%%MatrixMarket matrix coordinate";
   stream << (WEIGHTED?  " real"      : " pattern");
   stream << (symmetric? " symmetric" : " general") << '\n';
