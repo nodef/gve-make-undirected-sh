@@ -144,6 +144,7 @@ inline void readGraphW(G& a, const string& file, const string& format, bool symm
   else if (format=="coo") readGraphCooFormatOmpW<WEIGHTED>(a, stream, symmetric);
   else if (format=="edgelist" || format=="csv" || format=="tsv") readGraphEdgelistFormatOmpW<WEIGHTED>(a, stream, symmetric);
   else throw std::runtime_error("Unknown input format: " + format);
+  stream.close();
 }
 
 
@@ -163,6 +164,7 @@ inline void writeGraph(const G& x, const string& file, const string& format, boo
   else if (format=="csv") writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric, ',');
   else if (format=="tsv") writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric, '\t');
   else throw std::runtime_error("Unknown output format: " + format);
+  stream.close();
 }
 
 

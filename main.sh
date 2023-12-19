@@ -2,6 +2,7 @@
 src="graph-make-undirected"
 out="$HOME/Logs/$src$1.log"
 ulimit -s unlimited
+mkdir -p "$HOME/Logs"
 printf "" > "$out"
 
 # Download program
