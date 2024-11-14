@@ -84,7 +84,7 @@ inline Options parseOptions(int argc, char **argv) {
  * @param name program name
  */
 inline void showHelp(const char *name) {
-  fprintf(stderr, "graph-make-undirected:\n");
+  fprintf(stderr, "gve-make-undirected:\n");
   fprintf(stderr, "Convert a directed graph to an undirected graph.\n\n");
   fprintf(stderr, "Usage: %s [options]\n", name);
   fprintf(stderr, "Options:\n");
@@ -189,7 +189,7 @@ int main(int argc, char **argv) {
   println(x);
   // Symmetrize graph.
   if (!o.symmetric) {
-    x = symmetrizeOmp(x);
+    symmetrizeOmpU(x);
     print(x); printf(" (symmetrize)\n");
   }
   // Write undirected graph.

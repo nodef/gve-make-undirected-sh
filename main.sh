@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-src="graph-make-undirected"
+src="gve-make-undirected.sh"
 out="$HOME/Logs/$src$1.log"
 ulimit -s unlimited
 mkdir -p "$HOME/Logs"
@@ -25,6 +25,7 @@ DEFINES=(""
 
 # Build tool
 g++ ${DEFINES[*]} -std=c++17 -O3 -fopenmp main.cxx
+if [[ "$?" != "0" ]]; then exit 1; fi
 
 # Run tool on a single graph
 runTool() {
@@ -40,7 +41,7 @@ runTool() {
 
 # Run tool on all graphs
 if [[ "$RUN" != "0" ]]; then
-  runTool ~/Data/web-Stanford.mtx    0 0
+  # runTool ~/Data/web-Stanford.mtx    0 0
   runTool ~/Data/indochina-2004.mtx  0 0
   runTool ~/Data/uk-2002.mtx         0 0
   runTool ~/Data/arabic-2005.mtx     0 0

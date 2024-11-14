@@ -1,6 +1,6 @@
 #pragma once
-#include <cstdint>
 #include <iterator>
+#include <cstdint>
 
 using std::iterator_traits;
 

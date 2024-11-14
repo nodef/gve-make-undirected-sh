@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Default option values.
-: "${PREFIX:=/usr/local}"
+: "${PREFIX:=~/.local}"
 HELP="0"
 
 
@@ -28,18 +28,18 @@ if [[ "$HELP" == "1" ]]; then
   echo "Usage: ./install.sh [options]"
   echo "Options:"
   echo "  -h, --help      Print this message and exit."
-  echo "  -p, --prefix    Install prefix (default: /usr/local)."
+  echo "  -p, --prefix    Install prefix (default: ~/.local)."
   exit 0
 fi
 
 
 # Install program.
 mkdir -p "$PREFIX/bin"
-echo "Compiling graph-make-undirected ..."
+echo "Compiling gve-make-undirected.sh ..."
 DOWNLOAD=0 RUN=0 ./main.sh
 echo "Done."
 printf "\n"
-echo "Installing graph-make-undirected ..."
-mv a.out "$PREFIX/bin/graph-make-undirected"
+echo "Installing gve-make-undirected.sh ..."
+mv a.out "$PREFIX/bin/gve-make-undirected"
 echo "Done."
 printf "\n"

@@ -2,13 +2,13 @@ Convert a directed graph to an undirected graph.
 
 ```bash
 # Convert the web-Stanford directed graph to an undirected graph.
-$ graph-make-undirected -i web-Stanford.mtx -o web-Stanford-undirected.mtx
+$ gve-make-undirected -i web-Stanford.mtx -o web-Stanford-undirected.mtx
 
 # Convert the web-Stanford directed graph to an undirected graph in CSV format.
-$ graph-make-undirected -i web-Stanford.mtx -o web-Stanford-undirected.tsv -f mtx -g csv
+$ gve-make-undirected -i web-Stanford.mtx -o web-Stanford-undirected.tsv -f mtx -g csv
 
 # Convert the weighted vt2010 directed graph to an undirected graph.
-$ graph-make-undirected -i vt2010.mtx -o vt2010-undirected.mtx -w
+$ gve-make-undirected -i vt2010.mtx -o vt2010-undirected.mtx -w
 ```
 
 <br>
@@ -17,7 +17,7 @@ $ graph-make-undirected -i vt2010.mtx -o vt2010-undirected.mtx -w
 ### Usage
 
 ```bash
-$ graph-make-undirected [options]
+$ gve-make-undirected [options]
 
 Options:
   -h, --help                    Show this help message.
@@ -42,9 +42,9 @@ Supported formats:
 ### Installation
 
 ```bash
-$ git clone https://github.com/ionicf/graph-make-undirected
-$ cd graph-make-undirected
-$ ./install.sh --prefix /usr/local
+$ git clone https://github.com/ionicf/gve-make-undirected.sh
+$ cd gve-make-undirected.sh
+$ ./install.sh --prefix ~/.local
 ```
 
 <br>
@@ -53,4 +53,3 @@ $ ./install.sh --prefix /usr/local
 
 [![](https://img.youtube.com/vi/yqO7wVBTuLw/maxresdefault.jpg)](https://www.youtube.com/watch?v=yqO7wVBTuLw)<br>
 [![ORG](https://img.shields.io/badge/org-puzzlef-green?logo=Org)](https://puzzlef.github.io)
-[![DOI](https://zenodo.org/badge/732276706.svg)](https://zenodo.org/doi/10.5281/zenodo.10403710)
