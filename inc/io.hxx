@@ -1,13 +1,16 @@
 #pragma once
 #include <cstdint>
 #include <utility>
+#include <tuple>
 #include <string>
 #include <istream>
 #include <sstream>
+#include <iostream>
 #include <algorithm>
 #include "_main.hxx"
 #include "Graph.hxx"
 #include "update.hxx"
+#include "selfLoop.hxx"
 #ifdef OPENMP
 #include <omp.h>
 #endif
@@ -20,6 +23,7 @@ using std::istringstream;
 using std::move;
 using std::min;
 using std::max;
+using std::make_tuple;
 using std::replace;
 using std::getline;
 using std::to_string;
@@ -335,6 +339,7 @@ inline void writeGraphEdgelistFormatOmp(ostream& stream, const G& x, bool symmet
     size_t U = min((i+1)*CHUNK, S);
     #pragma omp parallel for schedule(dynamic, 1024)
     for (size_t u=i*CHUNK; u<U; ++u) {
+      if (!x.hasVertex(u)) continue;
       int t = omp_get_thread_num();
       string ustr, vstr, wstr;
       x.forEachEdge(u, [&](auto v, auto w) {
@@ -364,6 +369,23 @@ inline void writeGraphEdgelistFormatOmp(ostream& stream, const G& x, bool symmet
 
 
 /**
+ * Get the rows, cols, and size of a graph.
+ * @param x input graph
+ * @param symmetric is graph symmetric?
+ * @returns tuple of rows, cols, and size
+ */
+template <class G>
+inline auto graphRowsColsSize(const G& x, bool symmetric=false) {
+  size_t rows = x.order(), cols = x.order(), size = x.size();
+  if (symmetric) {
+    size_t NL = countSelfLoopsOmp(x);
+    size = NL + (x.size() - NL)/2;
+  }
+  return make_tuple(rows, cols, size);
+}
+
+
+/**
  * Write a graph in COO format.
  * @tparam WEIGHTED is graph weighted?
  * @param stream output stream
@@ -373,7 +395,7 @@ inline void writeGraphEdgelistFormatOmp(ostream& stream, const G& x, bool symmet
  */
 template <bool WEIGHTED=false, class G>
 inline void writeGraphCooFormat(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
-  size_t rows = x.order(), cols = x.order(), size = symmetric? x.size()/2 : x.size();
+  auto [rows, cols, size] = graphRowsColsSize(x, symmetric);
   stream << rows << ' ' << cols << ' ' << size << '\n';
   writeGraphEdgelistFormat<WEIGHTED>(stream, x, symmetric, sep);
 }
@@ -390,7 +412,7 @@ inline void writeGraphCooFormat(ostream& stream, const G& x, bool symmetric=fals
  */
 template <bool WEIGHTED=false, class G>
 inline void writeGraphCooFormatOmp(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
-  size_t rows = x.order(), cols = x.order(), size = symmetric? x.size()/2 : x.size();
+  auto [rows, cols, size] = graphRowsColsSize(x, symmetric);
   stream << rows << ' ' << cols << ' ' << size << '\n';
   writeGraphEdgelistFormatOmp<WEIGHTED>(stream, x, symmetric, sep);
 }
@@ -407,7 +429,7 @@ inline void writeGraphCooFormatOmp(ostream& stream, const G& x, bool symmetric=f
  */
 template <bool WEIGHTED=false, class G>
 inline void writeGraphMtxFormat(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
-  size_t rows = x.order(), cols = x.order(), size = symmetric? x.size()/2 : x.size();
+  auto [rows, cols, size] = graphRowsColsSize(x, symmetric);
   stream << "%%MatrixMarket matrix coordinate";
   stream << (WEIGHTED?  " real"      : " pattern");
   stream << (symmetric? " symmetric" : " general") << '\n';
@@ -427,7 +449,8 @@ inline void writeGraphMtxFormat(ostream& stream, const G& x, bool symmetric=fals
  */
 template <bool WEIGHTED=false, class G>
 inline void writeGraphMtxFormatOmp(ostream& stream, const G& x, bool symmetric=false, char sep=' ') {
-  size_t rows = x.order(), cols = x.order(), size = symmetric? x.size()/2 : x.size();
+  size_t rows = x.order(), cols = x.order(), size = x.size();
+  if (symmetric) { size_t NL = countSelfLoopsOmp(x); size = NL + (x.size() - NL)/2; }
   stream << "%%MatrixMarket matrix coordinate";
   stream << (WEIGHTED?  " real"      : " pattern");
   stream << (symmetric? " symmetric" : " general") << '\n';

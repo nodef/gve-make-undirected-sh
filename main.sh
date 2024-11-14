@@ -34,9 +34,12 @@ runTool() {
   # $3: is graph symmetric (0/1)
   opt2=""
   opt3=""
+  opt4=""
+  opt5=""  # set to "-t" for outputting graph in symmetric format
   if [[ "$2" == "1" ]]; then opt2="-w"; fi
   if [[ "$3" == "1" ]]; then opt3="-s"; fi
-  stdbuf --output=L ./a.out -i "$1" -o "$1.undirected" "$opt2" "$opt3" 2>&1 | tee -a "$out"
+  if [[ "$2" == "1" ]]; then opt4="-x"; fi
+  stdbuf --output=L ./a.out -i "$1" -o "$1.undirected" "$opt2" "$opt3" "$opt4" "$opt5" 2>&1 | tee -a "$out"
 }
 
 # Run tool on all graphs

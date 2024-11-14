@@ -17,6 +17,25 @@ inline size_t countSelfLoops(const G& x) {
   x.forEachVertexKey([&](auto u) { if (x.hasEdge(u, u)) ++a; });
   return a;
 }
+
+
+#ifdef OPENMP
+/**
+ * Count the number of self-loops in a graph.
+ * @param x input graph
+ * @returns number of self-loops
+ */
+template <class G>
+inline size_t countSelfLoopsOmp(const G& x) {
+  using  K = typename G::key_type;
+  size_t S = x.span();
+  size_t a = 0;
+  #pragma omp parallel for schedule(static, 2048) reduction(+:a)
+  for (K u=0; u<S; ++u)
+    if (x.hasEdge(u, u)) ++a;
+  return a;
+}
+#endif
 #pragma endregion
 
 

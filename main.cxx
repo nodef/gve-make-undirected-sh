@@ -42,9 +42,13 @@ struct Options {
   /** Output file format ("mtx", "coo", "edgelist", "csv", "tsv"). */
   string outputFormat = "mtx";
   /** Whether the input graph is weighted. */
-  bool weighted = false;
+  bool inputWeighted = false;
+  /** Whether the output graph is weighted. */
+  bool outputWeighted = false;
   /** Whether the input graph is symmetric. */
-  bool symmetric = false;
+  bool inputSymmetric = false;
+  /** Whether the output graph is symmetric. */
+  bool outputSymmetric = false;
   /** Whether to print help. */
   bool help = false;
 };
@@ -68,8 +72,10 @@ inline Options parseOptions(int argc, char **argv) {
     else if (k=="-o" || k=="--output") o.outputFile = argv[++i];
     else if (k=="-f" || k=="--input-format")  o.inputFormat  = argv[++i];
     else if (k=="-g" || k=="--output-format") o.outputFormat = argv[++i];
-    else if (k=="-w" || k=="--weighted")  o.weighted  = true;
-    else if (k=="-s" || k=="--symmetric") o.symmetric = true;
+    else if (k=="-w" || k=="--input-weighted")   o.inputWeighted   = true;
+    else if (k=="-x" || k=="--output-weighted")  o.outputWeighted  = true;
+    else if (k=="-s" || k=="--input-symmetric")  o.inputSymmetric  = true;
+    else if (k=="-t" || k=="--output-symmetric") o.outputSymmetric = true;
     else {
       fprintf(stderr, "Unknown option: %s\n", k.c_str());
       o.help = true;
@@ -91,10 +97,12 @@ inline void showHelp(const char *name) {
   fprintf(stderr, "  -h, --help                    Show this help message.\n");
   fprintf(stderr, "  -i, --input <file>            Input file name.\n");
   fprintf(stderr, "  -o, --output <file>           Output file name.\n");
-  fprintf(stderr, "  -f, --input-format <format>   Input file format.\n");
-  fprintf(stderr, "  -g, --output-format <format>  Output file format.\n");
-  fprintf(stderr, "  -w, --weighted                Input graph is weighted.\n");
-  fprintf(stderr, "  -s, --symmetric               Input graph is symmetric.\n");
+  fprintf(stderr, "  -f, --input-format <format>   Input file format [mtx].\n");
+  fprintf(stderr, "  -g, --output-format <format>  Output file format [mtx].\n");
+  fprintf(stderr, "  -w, --input-weighted          Input graph is weighted [false].\n");
+  fprintf(stderr, "  -x, --output-weighted         Output graph is weighted [false].\n");
+  fprintf(stderr, "  -s, --input-symmetric         Input graph is symmetric [false].\n");
+  fprintf(stderr, "  -t, --output-symmetric        Output graph is symmetric [false].\n");
   fprintf(stderr, "\n");
   fprintf(stderr, "Supported formats:\n");
   fprintf(stderr, "  mtx       Matrix Market format (default).\n");
@@ -184,18 +192,18 @@ int main(int argc, char **argv) {
   // Read graph.
   DiGraph<K, None, E> x;
   printf("Reading graph %s ...\n", o.inputFile.c_str());
-  if (o.weighted) readGraphW<true> (x, o.inputFile, o.inputFormat, o.symmetric);
-  else            readGraphW<false>(x, o.inputFile, o.inputFormat, o.symmetric);
+  if (o.inputWeighted) readGraphW<true> (x, o.inputFile, o.inputFormat, o.inputSymmetric);
+  else                 readGraphW<false>(x, o.inputFile, o.inputFormat, o.inputSymmetric);
   println(x);
   // Symmetrize graph.
-  if (!o.symmetric) {
+  if (!o.inputSymmetric) {
     symmetrizeOmpU(x);
     print(x); printf(" (symmetrize)\n");
   }
   // Write undirected graph.
   printf("Writing undirected graph %s ...\n", o.outputFile.c_str());
-  if (o.weighted) writeGraph<true> (x, o.outputFile, o.outputFormat, true);
-  else            writeGraph<false>(x, o.outputFile, o.outputFormat, true);
+  if (o.outputWeighted) writeGraph<true> (x, o.outputFile, o.outputFormat, o.outputSymmetric);
+  else                  writeGraph<false>(x, o.outputFile, o.outputFormat, o.outputSymmetric);
   printf("Done.\n\n");
   return 0;
 }

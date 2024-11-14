@@ -23,10 +23,12 @@ Options:
   -h, --help                    Show this help message.
   -i, --input <file>            Input file name.
   -o, --output <file>           Output file name.
-  -f, --input-format <format>   Input file format.
-  -g, --output-format <format>  Output file format.
-  -w, --weighted                Input graph is weighted.
-  -s, --symmetric               Input graph is symmetric.
+  -f, --input-format <format>   Input file format [mtx].
+  -g, --output-format <format>  Output file format [mtx].
+  -w, --input-weighted          Input graph is weighted [false].
+  -x, --output-weighted         Output graph is weighted [false].
+  -s, --input-symmetric         Input graph is symmetric [false].
+  -t, --output-symmetric        Output graph is symmetric [false].
 
 Supported formats:
   mtx       Matrix Market format (default).
